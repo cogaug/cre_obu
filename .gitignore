@@ -1,0 +1,14 @@
+# project
+.vscode
+.clangd
+
+# external libs
+/libext/*.so
+/libext/*.a
+
+# binaries
+/obj/*.o
+/bin/cre_obu
+
+# tag
+tags
