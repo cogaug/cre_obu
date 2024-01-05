@@ -29,7 +29,7 @@
 #ifndef _LTE_API_H_
 #define _LTE_API_H_
 
-#include <system.h>
+#include "system.h"
 
 #define EXTERN     extern
 
