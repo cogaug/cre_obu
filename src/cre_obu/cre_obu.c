@@ -1,6 +1,20 @@
 
 #include <cre_obu.h>
 #include "version.h"
+/**
+ * @brief       버전 출력
+ * @retval      none
+ * @author      albert
+ * @date        2024-01-09
+ */
+static void print_version()
+{
+    printf("%s %s.%s.%s\n",
+        PROJECT_NAME,
+        PROJECT_VER_MAJOR,
+        PROJECT_VER_MINOR,
+        PROJECT_VER_PATCH);
+} /* print_version */
 
 /**
  * @brief       send data to v2x using uds
@@ -153,6 +167,16 @@ int recv_client_packet(int sock)
         close(uds_sock);
     }
 
+int main(int argc, char **argv)
+    int i = 0;
+
+    /* 버전 옵션 검색 */
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-v") == 0) {
+            print_version();
+            exit(0);
+        }
+    }
     /* create v2x_thread */
     retval = pthread_create(&pid[0], NULL, v2x_thread, NULL);
 
