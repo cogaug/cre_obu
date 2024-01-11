@@ -1,6 +1,10 @@
 
 #include <cre_obu.h>
 #include "version.h"
+
+int g_client_sock = -1;
+int client_run = 0;
+
 /**
  * @brief       버전 출력
  * @retval      none
@@ -110,11 +114,46 @@ int recv_client_packet(int sock)
 
     return 0;
 }/* recv_client_packet */
+
+/**
+ * @brief       tcp client thread
+ * @param[in]   arg : gps context
+ * @retval      none
+ * @author      albert
+ * @date        2024-01-08
+ */
+void *client_thread(void *arg)
+{
     int uds_sock = -1;
     struct sockaddr_un msg_addr_un;
     struct sockaddr_un msg_recv_un;
     int namelen = sizeof(struct sockaddr_un);
+    unsigned char rx_buffer[2302];
+    int fl = 0;
+    g_client_sock = *((int *) arg);
     int retval = 0;
+
+    if (g_client_sock == -1) {
+        sleep(1);
+        goto client_exit;
+    }
+
+    printf("ACU connected\n");
+
+    client_run = 1;
+
+    /* set tcp socket  nonblocking */
+    if ((fl = fcntl(g_client_sock, F_GETFL, NULL)) == -1) {
+        sleep(1);
+        goto client_tcp_exit;
+    }
+
+    fl |= O_NONBLOCK;
+
+    if (fcntl(g_client_sock, F_SETFL, fl) == -1) {
+        sleep(1);
+        goto client_tcp_exit;
+    }
 
     /* uds server open */
     uds_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -152,6 +191,8 @@ int recv_client_packet(int sock)
         sleep(1);
         goto client_uds_exit;
     }
+
+    while (client_run == 1) {
         /* ACU로부터 송신요청 수신시 처 */
         retval = recv_client_packet(g_client_sock);
 
@@ -159,15 +200,62 @@ int recv_client_packet(int sock)
             client_run = 0;
             break;
         }
+
         /* recv from v2x */
         retval = recvfrom(uds_sock, rx_buffer, sizeof(rx_buffer), 0, (struct sockaddr *)&msg_recv_un, (socklen_t*)&namelen);
 
+        /* There is something to send forward to ACU */
+        if (retval > 0) {
+            /* */
+            // printf("o2a v2x rx msgID %d len %d\n", htonl(pheader->msg_id), htonl(pheader->length));
+            /* send to ACU */
+            write(g_client_sock, rx_buffer, retval);
+        }
+
+        /* 1ms sleep */
+        usleep(1000);
+    }
+
+client_uds_exit:
     /* uds close */
     if (uds_sock > 0) {
         close(uds_sock);
     }
 
+client_tcp_exit:
+    /* tcp close */
+    if (g_client_sock > 0) {
+        close(g_client_sock);
+        g_client_sock = -1;
+    }
+
+client_exit:
+    printf("ACU disconnected\n");
+
+    pthread_exit(NULL);
+} /* client_thread */
+
+/**
+ * @brief       메인함수
+ * @param[in]   argc : 입력 arguement 개수
+ * @param[in]   argv : 입력 arguement 값
+ * @retval      always 0
+ * @author      albert
+ * @date        2024-01-08
+ */
 int main(int argc, char **argv)
+{
+    int server_sock = -1;
+    struct sockaddr_in tcp_sa;
+    int ov = 1;
+    int fl = 0;
+    int addrlen = sizeof(struct sockaddr_in);
+    int client_sock = -1;
+    struct sockaddr_in addr;
+    /* threads tid */
+    pthread_t tid;
+    pthread_t client_tid;
+    int retval = 0;
     int i = 0;
 
     /* 버전 옵션 검색 */
@@ -177,18 +265,92 @@ int main(int argc, char **argv)
             exit(0);
         }
     }
+
     /* create v2x_thread */
-    retval = pthread_create(&pid[0], NULL, v2x_thread, NULL);
+    retval = pthread_create(&tid, NULL, v2x_thread, NULL);
 
     if (retval != 0) {
         printf("v2x_thread create fail\n");
         goto app_exit;
     }
 
+    /* init server socket */
+
+    if ((server_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP)) == -1) {
+        printf("server socket create fail\n");
+        sleep(1);
+        goto app_exit;
+    }
+
+    if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &ov, sizeof(int)) == -1) {
+        printf("setsockopt fail\n");
+        sleep(1);
+        goto tcp_server_exit;
+    }
+
+    memset((char*)&tcp_sa, 0, sizeof(tcp_sa));
+    tcp_sa.sin_family = AF_INET;
+    tcp_sa.sin_addr.s_addr = htonl(INADDR_ANY);
+    tcp_sa.sin_port = htons(SERVER_PORT);
+
+    /* bind */
+    if (bind(server_sock, (struct sockaddr *)&tcp_sa, sizeof(tcp_sa)) == -1) {
+        sleep(1);
+        printf("bind fail\n");
+        goto tcp_server_exit;
+    }
+
+    /* listen */
+    if (listen(server_sock, SOMAXCONN) == -1) {
+        sleep(1);
+        printf("listen fail\n");
+        goto tcp_server_exit;
+    }
+
+    /* set tcp socket nonblocking */
+    if ((fl = fcntl(server_sock, F_GETFL, NULL)) == -1) {
+        sleep(1);
+        goto tcp_server_exit;
+    }
+
+    fl |= O_NONBLOCK;
+
+    if (fcntl(server_sock, F_SETFL, fl) == -1) {
+        sleep(1);
+        goto tcp_server_exit;
+    }
+
     while (1) {
-        sleep (1);
+        client_sock = accept(server_sock, (struct sockaddr *) &addr, (socklen_t *)&addrlen);
+
+        /* new connection */
+        if (client_sock > 0) {
+            /* 기존 연결이 살아있음 - 기존 쓰레드 종료 */
+            if (g_client_sock > 0) {
+                client_run = 0;
+                pthread_join(client_tid, NULL);
+            }
+
+            /* 새로운 클라이언트 쓰레드 생성 */
+            pthread_create(&client_tid, NULL, client_thread, (void *)&client_sock);
+        }
+        /* 50 msec */
+        usleep(1000 * 50);
+    }
+
+    /* 기존 연결이 살아있음 - 기존 쓰레드 종료 */
+    if (g_client_sock > 0) {
+        client_run = 0;
+        pthread_join(client_tid, NULL);
+    }
+
+tcp_server_exit:
+    if (server_sock > 0) {
+        close(server_sock);
     }
 
 app_exit:
+    printf("app exit\n");
+
     return 0;
 }
