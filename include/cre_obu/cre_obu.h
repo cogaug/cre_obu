@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #include "common.h"
+#include "o2a.h"
 #include "v2x_interface.h"
 
 #ifdef __cplusplus
