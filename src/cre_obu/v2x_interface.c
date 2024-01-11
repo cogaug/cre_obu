@@ -54,7 +54,13 @@ void * v2x_tx_thread(void *param)
     struct sockaddr_un msg_addr_un;
     struct sockaddr_un msg_recv_un;
     int namelen = sizeof(struct sockaddr_un);
+    int fl = 0;
+    unsigned char rx_buffer[2302];
+    unsigned char dest_mac[6] = { 0xff };
     lte_dot3PsidRange psid = 0;
+    apiResult result = ar_success;
+    int retval = 0;
+
     /* uds server open */
     uds_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
 
@@ -96,10 +102,28 @@ void * v2x_tx_thread(void *param)
         /* recv from acu interface */
         retval = recvfrom(uds_sock, rx_buffer, sizeof(rx_buffer), 0, (struct sockaddr *)&msg_recv_un, (socklen_t*)&namelen);
 
+        /* There is something to send to v2x */
+        if (retval > 0) {
+            result = lteUnsignedWsmTransmit(psid, lte_power_tx_default, lte_userPriority_max, lte_dataRate_default,
+                    rx_buffer, retval, dest_mac);
+
+            if (result == ar_success) {
+                printf("send success\n");
+            } else {
+                printf("send fail(%d)\n", result);
+            }
+        }
+
+        /* 1msec sleep */
+        usleep(1000);
+    }
+
 uds_server_exit:
     if (uds_sock > 0) {
         close(uds_sock);
     }
+
+tx_thread_exit:
     printf("v2x_tx_thread stop\n");
 
     pthread_exit(NULL);
@@ -150,9 +174,7 @@ void * v2x_rx_thread(void *param)
  */
 void* v2x_thread(void *param)
 {
-    unsigned char test[16];
     pthread_t pid[2];
-    int result = 0;
     apiResult ar_result = 0;
 
     printf("v2x_thread start\n");
@@ -178,7 +200,6 @@ void* v2x_thread(void *param)
     pthread_create(&pid[1], NULL, v2x_rx_thread, NULL);
 
     while (1) {
-        v2x_send_spdu(0x20, test, 16);
         sleep(1);
     }
 
