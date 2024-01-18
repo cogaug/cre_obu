@@ -25,7 +25,7 @@ extern "C" {
 
 typedef struct {
     unsigned int header;
-    unsigned int msg_id;
+    unsigned int psid;
     unsigned int length;
 } o2a_header_t;
 

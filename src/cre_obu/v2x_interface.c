@@ -2,7 +2,7 @@
 /**
  * @file    v2x_interface.c
  * @author  albert(albert@it-telecom.co.kr)
- * @date    2023-01-02
+ * @date    2024-01-08
  * @brief   V2X 인터페이스
  * @version 1.0
  */
@@ -56,8 +56,10 @@ void * v2x_tx_thread(void *param)
     int namelen = sizeof(struct sockaddr_un);
     int fl = 0;
     unsigned char rx_buffer[2302];
+    o2a_header_t *pheader = (o2a_header_t *) rx_buffer;
     unsigned char dest_mac[6] = { 0xff };
     lte_dot3PsidRange psid = 0;
+    int length = 0;
     apiResult result = ar_success;
     int retval = 0;
 
@@ -66,6 +68,7 @@ void * v2x_tx_thread(void *param)
 
     /* uds socket create error */
     if (uds_sock < 0) {
+        printf("uds server socket fail\n");
         sleep(1);
         goto tx_thread_exit;
     }
@@ -74,12 +77,8 @@ void * v2x_tx_thread(void *param)
     msg_addr_un.sun_family = AF_UNIX;
     strcpy(msg_addr_un.sun_path, UDS_FILE_ACU_TX);
 
-    if (uds_sock < 0) {
-        sleep(1);
-        goto tx_thread_exit;
-    }
-
     if (bind(uds_sock, (struct sockaddr *) &msg_addr_un, sizeof(struct sockaddr_un)) < 0) {
+        printf("uds server bind fail\n");
         sleep(1);
         goto uds_server_exit;
     }
@@ -104,8 +103,12 @@ void * v2x_tx_thread(void *param)
 
         /* There is something to send to v2x */
         if (retval > 0) {
+            /* get header info */
+            psid = htonl(pheader->psid);
+            length = htonl(pheader->length);
+
             result = lteUnsignedWsmTransmit(psid, lte_power_tx_default, lte_userPriority_max, lte_dataRate_default,
-                    rx_buffer, retval, dest_mac);
+                    &rx_buffer[O2A_HEADER_SIZE], length, dest_mac);
 
             if (result == ar_success) {
                 printf("send success\n");
@@ -143,19 +146,25 @@ void * v2x_rx_thread(void *param)
     int retval = 0;
     lte_dot3PsidRange psid = 0;
     unsigned char buffer[2302];
+    o2a_header_t *pheader = (o2a_header_t *) buffer;
 
     printf("v2x_rx_thread start\n");
 
     while (1) {
         /* 비서명 WSM 수신 - blocking 동작 */
-        retval = lteUnsignedWsmReceive(&psid, buffer, sizeof(buffer));
+        retval = lteUnsignedWsmReceive(&psid, &buffer[O2A_HEADER_SIZE],
+                sizeof(buffer) - O2A_HEADER_SIZE);
 
         if (retval > 0) {
             printf("rx : %d packet(psid %d)\n", retval, psid);
+            pheader->header = O2A_HEADER;
+            pheader->psid = htonl(psid);
+            pheader->length = htonl(retval);
             v2x_send_to_acu(buffer, retval);
         }
 
-        sleep(1);
+        /* 10msec sleep */
+        usleep(10000);
     }
 
     printf("v2x_rx_thread stop\n");
