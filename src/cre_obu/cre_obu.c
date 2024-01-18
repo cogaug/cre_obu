@@ -2,7 +2,10 @@
 #include <cre_obu.h>
 #include "version.h"
 
+/* client socket global variable  */
 int g_client_sock = -1;
+
+/* client thread run global variable */
 int client_run = 0;
 
 /**
@@ -160,6 +163,7 @@ void *client_thread(void *arg)
 
     /* uds socket create error */
     if (uds_sock < 0) {
+        printf("uds sokcet fail\n");
         sleep(1);
         goto client_tcp_exit;
     }
@@ -168,12 +172,8 @@ void *client_thread(void *arg)
     msg_addr_un.sun_family = AF_UNIX;
     strcpy(msg_addr_un.sun_path, UDS_FILE_ACU_RX);
 
-    if (uds_sock < 0) {
-        sleep(1);
-        goto client_tcp_exit;
-    }
-
     if (bind(uds_sock, (struct sockaddr *) &msg_addr_un, sizeof(struct sockaddr_un)) < 0) {
+        printf("uds bind fail\n");
         sleep(1);
         goto client_uds_exit;
     }
@@ -353,4 +353,6 @@ app_exit:
     printf("app exit\n");
 
     return 0;
-}
+} /* main */
+
+/* end of cre_obu.c */
