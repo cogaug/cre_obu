@@ -64,6 +64,10 @@ void * v2x_tx_thread(void *param)
     int retval = 0;
 
     /* uds server open */
+    if (access(UDS_FILE_ACU_TX, F_OK) == 0) {
+        unlink(UDS_FILE_ACU_TX);
+    }
+
     uds_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
 
     /* uds socket create error */
@@ -107,13 +111,19 @@ void * v2x_tx_thread(void *param)
             psid = htonl(pheader->psid);
             length = htonl(pheader->length);
 
-            result = lteUnsignedWsmTransmit(psid, lte_power_tx_default, lte_userPriority_max, lte_dataRate_default,
-                    &rx_buffer[O2A_HEADER_SIZE], length, dest_mac);
+            if ((psid == PSID_CRE_RECOGNINTION) || (psid == PSID_CRE_SITUATION) ||
+                (psid == PSID_CRE_SITUATION)) {
 
-            if (result == ar_success) {
-                printf("send success\n");
+                result = lteUnsignedWsmTransmit(psid, lte_power_tx_default, lte_userPriority_max, lte_dataRate_default,
+                        &rx_buffer[O2A_HEADER_SIZE], length, dest_mac);
+
+                if (result == ar_success) {
+                    printf("send success\n");
+                } else {
+                    printf("send fail(%d)\n", result);
+                }
             } else {
-                printf("send fail(%d)\n", result);
+                printf("psid error (%d:0x%x)\n", psid, psid);
             }
         }
 
@@ -155,12 +165,17 @@ void * v2x_rx_thread(void *param)
         retval = lteUnsignedWsmReceive(&psid, &buffer[O2A_HEADER_SIZE],
                 sizeof(buffer) - O2A_HEADER_SIZE);
 
-        if (retval > 0) {
-            printf("rx : %d packet(psid %d)\n", retval, psid);
-            pheader->header = O2A_HEADER;
-            pheader->psid = htonl(psid);
-            pheader->length = htonl(retval);
-            v2x_send_to_acu(buffer, retval);
+
+        if ((psid == PSID_CRE_RECOGNINTION) || (psid == PSID_CRE_SITUATION) ||
+            (psid == PSID_CRE_SITUATION)) {
+
+            if (retval > 0) {
+                printf("rx : %d packet(psid %d)\n", retval, psid);
+                pheader->header = O2A_HEADER;
+                pheader->psid = htonl(psid);
+                pheader->length = htonl(retval);
+                v2x_send_to_acu(buffer, retval);
+            }
         }
 
         /* 10msec sleep */

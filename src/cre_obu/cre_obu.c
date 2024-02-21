@@ -159,6 +159,10 @@ void *client_thread(void *arg)
     }
 
     /* uds server open */
+    if (access(UDS_FILE_ACU_RX, F_OK) == 0) {
+        unlink(UDS_FILE_ACU_RX);
+    }
+
     uds_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
 
     /* uds socket create error */
