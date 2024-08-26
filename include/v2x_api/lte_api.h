@@ -29,7 +29,7 @@
 #ifndef _LTE_API_H_
 #define _LTE_API_H_
 
-#include "system.h"
+#include <system.h>
 
 #define EXTERN     extern
 
@@ -403,6 +403,14 @@ typedef enum
 EXTERN const char *get_api_version();
 
 /**
+ * @brief  lte active 상태 반환
+ * lte 모뎀의 활성화 상태를 반환한다.
+ *
+ * @retval apiResult 형식의 결과 코드
+ */
+EXTERN apiResult lteCheckStatus();
+
+/**
  * @brief lte API 초기화
  * lte API를 초기화하는 함수이다. lteInit을 수행후 lte관련 API를 사용가능하다.
  *
@@ -526,8 +534,7 @@ EXTERN apiResult lteSignedWsmTransmit(
  * @details WSM을 수신하고 수신된 WSM의 payload와 PSID를 반환한다.
  *
  * @param psid (OUT) 수신된 WSM의 PSID
- * @param buffer (OUT)  payload가 저장될 버퍼
- * @param buffer_size (IN)  수신된 데이터 저장할 버퍼 최대크기
+ * @param buffer (OUT)  payload가 저장될 버퍼서
  *
  * @return 성공시 수신된 데이터(WSM)의 크기, 오류 발생시 음수 반환
  */

@@ -16,6 +16,7 @@ extern "C" {
 
 #include "common.h"
 #include "lte_api.h"
+#include "o2a.h"
 
 /* extern functions */
 extern void *v2x_thread(void *param);

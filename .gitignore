@@ -1,6 +1,8 @@
 # project
 .vscode
 .clangd
+var-deploy.sh
+/build
 
 # external libs
 /libext/*.so
