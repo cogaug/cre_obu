@@ -330,7 +330,7 @@ void* v2x_thread(void *param)
     led_init();
 
     /* v2x init */
-    ar_result = lteInit(178, debug_all);
+    ar_result = lteInit(173, debug_all);
 
     if (ar_result != ar_success) {
         printf("lteInit fail %d\n", ar_result);
