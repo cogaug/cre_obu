@@ -11,6 +11,128 @@
 #include "lte_api.h"
 
 /**
+ * @brief LED GPIO 초기화
+ *
+ * @return int  1 : success, -1 : fail
+ *
+ * @author albert
+ * @date 2024-08-06
+ */
+int led_init(void)
+{
+    FILE *fp = NULL;
+
+    /* device open */
+    fp = fopen("/sys/class/gpio/export", "w");
+
+    /* result check */
+    if (fp == NULL) {
+        printf("Failed open /sys/class/gpio/export\n");
+        return -1;
+    }
+
+    /* pin */
+    fprintf(fp, "%d\n", 49);
+
+    fclose(fp);
+
+    /* device open */
+    fp = fopen("/sys/class/gpio/gpio49/direction", "w");
+
+    /* result check */
+    if (fp == NULL) {
+        printf("Failed open /sys/class/gpio/gpio49/direction\n");
+        return -1;
+    }
+
+    /* direction */
+    fprintf(fp, "out\n");
+
+    fclose(fp);
+
+    return 1;
+}
+
+/**
+ * @brief LED GPIO 제어 종료
+ *
+ * @return int  1 : success, -1 : fail
+ *
+ * @author albert
+ * @date 2024-08-06
+ */
+int led_deinit(void)
+{
+    FILE *fp = NULL;
+
+    /* device open */
+    fp = fopen("/sys/class/gpio/unexport", "w");
+
+    /* result check */
+    if (fp == NULL) {
+        printf("Failed open /sys/class/gpio/unexport\n");
+        return -1;
+    }
+
+    /* pin */
+    fprintf(fp, "%d\n", 49);
+
+    fclose(fp);
+
+    return 1;
+}
+
+/**
+ * @brief LED ON
+ *
+ * @author albert
+ * @date 2024-08-06
+ */
+void led_on(void)
+{
+    FILE *fp = NULL;
+
+    /* device open */
+    fp = fopen("/sys/class/gpio/gpio49/value", "w");
+
+    /* result check */
+    if (fp == NULL) {
+        printf("Failed open /sys/class/gpio49/value\n");
+        return;
+    }
+
+    /* pin out */
+    fprintf(fp, "%d\n", 0);
+
+    fclose(fp);
+}
+
+/**
+ * @brief LED OFF
+ *
+ * @author albert
+ * @date 2024-08-06
+ */
+void led_off(void)
+{
+    FILE *fp = NULL;
+
+    /* device open */
+    fp = fopen("/sys/class/gpio/gpio49/value", "w");
+
+    /* result check */
+    if (fp == NULL) {
+        printf("Failed open /sys/class/gpio49/value\n");
+        return;
+    }
+
+    /* pin out */
+    fprintf(fp, "%d\n", 1);
+
+    fclose(fp);
+}
+
+/**
  * @brief       send data to acu inteface using uds
  * @param[in]   buffer : 전달할 데이터
  * @param[in]   len : 전달할 데이터의 크기
@@ -200,8 +322,12 @@ void* v2x_thread(void *param)
 {
     pthread_t pid[2];
     apiResult ar_result = 0;
+    bool led_index = false;
 
     printf("v2x_thread start\n");
+
+    /* led init */
+    led_init();
 
     /* v2x init */
     ar_result = lteInit(178, debug_all);
@@ -224,11 +350,21 @@ void* v2x_thread(void *param)
     pthread_create(&pid[1], NULL, v2x_rx_thread, NULL);
 
     while (1) {
+        if (lteCheckStatus() >= ar_success) {
+            (led_index == true) ? led_on() : led_off();
+            led_index = !led_index;
+        } else {
+            led_off();
+        }
+
         sleep(1);
     }
 
     /* v2x deinit */
     lteDeinit();
+
+    /* led deinit */
+    led_deinit();
 
     printf("v2x_thread stop\n");
 
