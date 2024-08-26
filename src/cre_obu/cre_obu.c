@@ -103,8 +103,6 @@ int recv_client_packet(int sock)
 
         left = length;
 
-        printf("length = %d\n", left);
-
         /* 데이터(payload) 부분 읽어오기 */
         while (left > 0) {
             retval = recv(sock, &buffer[O2A_HEADER_SIZE + (length - left)], left, 0);
