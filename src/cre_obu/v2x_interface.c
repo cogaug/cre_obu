@@ -240,17 +240,17 @@ void * v2x_tx_thread(void *param)
                         &rx_buffer[O2A_HEADER_SIZE], length, dest_mac);
 
                 if (result == ar_success) {
-                    printf("send success\n");
+                    printf("v2x send psid %d size %d bytes success\n", psid, length);
                 } else {
-                    printf("send fail(%d)\n", result);
+                    printf("v2x send psid %d fail(%d)\n", psid, result);
                 }
             } else {
                 printf("psid error (%d:0x%x)\n", psid, psid);
             }
         }
 
-        /* 1msec sleep */
-        usleep(1000);
+        /* 100usec sleep */
+        usleep(100);
     }
 
 uds_server_exit:
@@ -293,10 +293,10 @@ void * v2x_rx_thread(void *param)
 
             if (retval > 0) {
                 printf("rx : %d packet(psid %d)\n", retval, psid);
-                pheader->header = O2A_HEADER;
+                pheader->header = O2A_HEADER_STX;
                 pheader->psid = htonl(psid);
                 pheader->length = htonl(retval);
-                v2x_send_to_acu(buffer, retval);
+                v2x_send_to_acu(buffer, retval + O2A_HEADER_SIZE);
             }
         }
 

@@ -15,7 +15,7 @@ extern "C" {
 
 #include "common.h"
 
-#define O2A_HEADER                  0x53415445
+#define O2A_HEADER_STX              0x53415445
 #define MAX_BUFFER_SIZE             2048
 #define SERVER_PORT                 9201
 

@@ -68,18 +68,31 @@ int recv_client_packet(int sock)
     int left = 0;
     int retry = 0;
 
-    /* 헤더 크기 읽음 */
-    retval = recv(sock, buffer, O2A_HEADER_SIZE, 0);
+    /* STX 크기 읽음 */
+    retval = recv(sock, buffer, sizeof(O2A_HEADER_STX), 0);
 
     if (retval < 0) { /* no data */
         return -1;
     } else if (retval == 0) { /* disconnect */
         return 0;
-    } else if (retval == O2A_HEADER_SIZE) {
-        if (pheader->header != O2A_HEADER) {
+    } else if (retval == sizeof(O2A_HEADER_STX)) {
+        if (htonl(pheader->header) != O2A_HEADER_STX) {
             printf("header not match %08X\n", pheader->header);
             return -1;
         }
+    } else {
+        printf("STX read size error\n");
+        return -1;
+    }
+
+    /*  헤더 나머지 읽음 */
+    retval = recv(sock, &buffer[4], O2A_HEADER_SIZE - sizeof(O2A_HEADER_STX), 0);
+
+    if (retval < 0) { /* no data */
+        return -1;
+    } else if (retval == 0) { /* disconnect */
+        return 0;
+    } else if (retval == (O2A_HEADER_SIZE - sizeof(O2A_HEADER_STX))) {
 
         length = htonl(pheader->length);
 
@@ -90,7 +103,9 @@ int recv_client_packet(int sock)
 
         left = length;
 
-        /* 데이터(messageframe) 부분 읽어오기 */
+        printf("length = %d\n", left);
+
+        /* 데이터(payload) 부분 읽어오기 */
         while (left > 0) {
             retval = recv(sock, &buffer[O2A_HEADER_SIZE + (length - left)], left, 0);
 
@@ -100,7 +115,7 @@ int recv_client_packet(int sock)
                 return 0;
             } else { /* 못읽는 경우 */
                 if (retry++ >= 10000) {
-                    // printf("over\n");
+                    printf("retry over\n");
                     return -1;
                 }
             }
@@ -197,7 +212,7 @@ void *client_thread(void *arg)
     }
 
     while (client_run == 1) {
-        /* ACU로부터 송신요청 수신시 처 */
+        /* ACU로부터 송신요청 수신시 처리 */
         retval = recv_client_packet(g_client_sock);
 
         if (retval == 0) { /* 연결 끊김 */
@@ -213,11 +228,11 @@ void *client_thread(void *arg)
             /* */
             // printf("o2a v2x rx msgID %d len %d\n", htonl(pheader->msg_id), htonl(pheader->length));
             /* send to ACU */
-            write(g_client_sock, rx_buffer, retval);
+            if (write(g_client_sock, rx_buffer, retval)) ;
         }
 
-        /* 1ms sleep */
-        usleep(1000);
+        /* 100us sleep */
+        usleep(100);
     }
 
 client_uds_exit:
@@ -323,6 +338,8 @@ int main(int argc, char **argv)
         sleep(1);
         goto tcp_server_exit;
     }
+
+    printf("TCP socket listen port %d\n", SERVER_PORT);
 
     while (1) {
         client_sock = accept(server_sock, (struct sockaddr *) &addr, (socklen_t *)&addrlen);
