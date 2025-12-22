@@ -1,3 +1,13 @@
+/**
+ * @file cre_obu.c
+ * @author albert
+ * @brief  cre_obu main function
+ * @version 0.1
+ * @date 2025-12-22
+ *
+ * @copyright Copyright it-telecom (c) 2025
+ *
+ */
 
 #include <cre_obu.h>
 #include "version.h"
@@ -57,7 +67,7 @@ void acu_send_to_v2x(unsigned char *buffer, int len)
  * @param[in]   sock : TCP 클리아언트 소켓
  * @retval      음수 : 데이터 없음, 0 : 연결끊김, 양수 : 수신데이터의 크기
  * @author      albert
- * @date        2024-01-09
+ * @date        2025-12-22
  */
 int recv_client_packet(int sock)
 {
@@ -115,6 +125,9 @@ int recv_client_packet(int sock)
                 if (retry++ >= 10000) {
                     printf("retry over\n");
                     return -1;
+                } else {
+                    /* 1ms sleep */
+                    usleep(1000);
                 }
             }
         }
