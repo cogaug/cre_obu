@@ -2,8 +2,8 @@
  * @file j3224.h
  * @author albert
  * @brief J3224 Interface Header
- * @version 0.1
- * @date 2025-07-28
+ * @version 1.0
+ * @date 2025-12-22
  *
  * @copyright Copyright it-telecom (c) 2025
  *
