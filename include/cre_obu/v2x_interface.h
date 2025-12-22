@@ -2,7 +2,7 @@
 /**
  * @file    v2x_interface.h
  * @author  albert(albert@it-telecom.co.kr)
- * @date    2024-01-02
+ * @date    2025-12-22
  * @brief   V2X 인터페이스
  * @version 1.0
  */
@@ -17,6 +17,7 @@ extern "C" {
 #include "common.h"
 #include "lte_api.h"
 #include "o2a.h"
+#include "j3224.h"
 
 /* extern functions */
 extern void *v2x_thread(void *param);
