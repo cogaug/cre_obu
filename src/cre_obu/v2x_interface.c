@@ -2,7 +2,7 @@
 /**
  * @file    v2x_interface.c
  * @author  albert(albert@it-telecom.co.kr)
- * @date    2024-01-08
+ * @date    2025-12-22
  * @brief   V2X 인터페이스
  * @version 1.0
  */
