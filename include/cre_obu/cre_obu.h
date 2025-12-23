@@ -1,9 +1,9 @@
 /**
  * @file    cre_obu.h
  * @author  albert(albert@it-telecom.co.kr)
- * @date    2024-01-02
+ * @date    2025-12-22
  * @brief   cre_obu
- * @version 1.0
+ * @version 1.1
  */
 
 #ifndef __CRE_OBU_H__
