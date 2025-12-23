@@ -1,9 +1,9 @@
 /**
  * @file    o2a.h
  * @author  ablert(albert@it-telecom.co.kr)
- * @date    2024-01-09
+ * @date    2025-12-22
  * @brief   CITS to DPU 프로토콜 데이터 형식
- * @version 1.0
+ * @version 1.1
  */
 
 #ifndef __O2A_H__
