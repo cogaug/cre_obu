@@ -1,9 +1,9 @@
 /**
  * @file    common.h
  * @author  albert(albert@it-telecom.co.kr)
- * @date    2024-01-02
+ * @date    2025-12-22
  * @brief   common header
- * @version 1.0
+ * @version 1.1
  */
 
 #ifndef __COMMON_H__
@@ -33,7 +33,6 @@ extern "C" {
 #define PSID_CRE_RECOGNINTION   92050 /* (0x16792) */
 #define PSID_CRE_SITUATION      92051 /* (0x16793) */
 #define PSID_CRE_NEGOTIATION    92052 /* (0x16794) */
-
 
 #ifdef __cplusplus
 }
